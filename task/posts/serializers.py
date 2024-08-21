@@ -1,34 +1,22 @@
 from rest_framework import serializers
+from .models import Post, Tag,Like
+from posts.models import UserAccount
 
-from accounts.models import UserAccount
-from .models import Post,Tag,Like
 
-# class PostSerializer(serializers.ModelSerializer):
-#     likes_count = serializers.SerializerMethodField()
-#     author = serializers.StringRelatedField(read_only=True)
-#     date_created = serializers.DateTimeField(format='%d-%m-%Y')
+class UserAccountSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserAccount
+        fields = ('id', 'name', 'email', 'mobile', 'username', 'is_active', 'is_staff', 'is_superuser')
+        extra_kwargs = {'password': {'write_only': True}}
 
-#     class Meta:
-#         model = Post
-#         fields = ('id', 'title', 'description', 'tags', 'date_created', 'likes_count', 'author')
-
-#     def get_likes_count(self, obj):
-#         return obj.likes.count()
-
-# class PostDetailSerializer(serializers.ModelSerializer):
-#     author = serializers.StringRelatedField(read_only=True)
-
-#     class Meta:
-#         model = Post
-#         fields = ('title', 'description', 'tags', 'author')
-        
-#     def create(self, validated_data):
-#         tags_data = validated_data.pop('tags', [])
-#         post = Post.objects.create(**validated_data)
-#         for tag in tags_data:
-#             tag_obj, created = Tag.objects.get_or_create(name=tag.name)
-#             post.tags.add(tag_obj)
-#         return post
+    def create(self, validated_data):
+        user = UserAccount.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            mobile=validated_data['mobile'],
+        )
+        return user
 
 
 class TagSerializer(serializers.ModelSerializer):
@@ -36,30 +24,35 @@ class TagSerializer(serializers.ModelSerializer):
         model = Tag
         fields = ['id', 'name']
 
+class LikeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Like
+        fields = ['id', 'user', 'post', 'created_at']
+        read_only_fields = ['user', 'created_at']
+        
 class PostSerializer(serializers.ModelSerializer):
-    # tags = TagSerializer(many=True, required=False)
-    tags = serializers.ListField(child=serializers.CharField(max_length=50), required=False, write_only=True)
-
-
     class Meta:
         model = Post
         fields = ['id', 'title', 'description', 'tags', 'created_at', 'updated_at', 'is_published', 'author']
-        read_only_fields = ['id', 'created_at', 'updated_at', 'author']
+        read_only_fields = ['created_at', 'updated_at', 'author']
 
     def create(self, validated_data):
+        # Extract the tags data from the validated data
         tags_data = validated_data.pop('tags', [])
-        author = self.context['request'].user
-        post = Post.objects.create(
-            title=validated_data['title'],
-            description=validated_data['description'],
-            author=author
-            )
         
-        for tag_data in tags_data:
-            tag, _ = Tag.objects.get_or_create(**tag_data)
-            post.tags.add(tag)
+        # Create the Post instance
+        post = Post.objects.create(**validated_data)
+        
+        # Assign the tags to the Post instance
+        post.tags.set(tags_data)
         return post
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
-        representation['tags'] = TagSerializer(instance.tags.all(), many=True).data
-        return representation
+    
+class PostCountSerializer(serializers.ModelSerializer):
+    likes_count = serializers.IntegerField(source='likes.count', read_only=True)
+    created_at = serializers.DateTimeField(format="%d-%m-%Y")
+    updated_at = serializers.DateTimeField(format="%d-%m-%Y")
+
+    class Meta:
+        model = Post
+        fields = ['id', 'title', 'description', 'tags', 'created_at', 'updated_at', 'is_published', 'author', 'likes_count']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'author', 'likes_count']

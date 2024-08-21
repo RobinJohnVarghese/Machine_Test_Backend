@@ -11,7 +11,16 @@ class UserAccountSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserAccount
         fields = ('id', 'name', 'email', 'mobile', 'username', 'is_active', 'is_staff', 'is_superuser')
+        extra_kwargs = {'password': {'write_only': True}}
 
+    def create(self, validated_data):
+        user = UserAccount.objects.create_user(
+            username=validated_data['username'],
+            email=validated_data['email'],
+            password=validated_data['password'],
+            mobile=validated_data['mobile'],
+        )
+        return user
 class SignupSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
 

@@ -3,10 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import  logout
-from .models import UserAccount
 from .serializers import UserAccountSerializer, SignupSerializer, LoginSerializer
-# from rest_framework.decorators import api_view, permission_classes
-from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth import get_user_model
 from django.http import JsonResponse
 from rest_framework.exceptions import AuthenticationFailed
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -39,8 +37,6 @@ class LoginView(APIView):
             if not user.is_active:
                 raise AuthenticationFailed("User account is inactive.")
 
-            # Handle login success (e.g., generate token, etc.)
-            # return Response({"message": "Login successful","user":user}, status=status.HTTP_200_OK)
             refresh = RefreshToken.for_user(user)
             response = JsonResponse({
                     "message": "Login successful",

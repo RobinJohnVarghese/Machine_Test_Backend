@@ -18,11 +18,8 @@ admin.site.register(Post, PostAdmin)
 class TagAdmin(admin.ModelAdmin):
     list_display = ('id','name')
     list_display_links = ('id','name')
-    # list_editable = ('name',)
 admin.site.register(Tag,TagAdmin)
     
 class LikeAdmin(admin.ModelAdmin):
     list_display = ('id','user','post','created_at')
-    # list_display_links = ('id','name')
-    # list_editable = ('name',)
 admin.site.register(Like,LikeAdmin)
